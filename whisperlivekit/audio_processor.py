@@ -1,6 +1,8 @@
 import asyncio
+import csv
 import numpy as np
 from time import time, sleep
+from pathlib import Path
 import math
 import logging
 import traceback
@@ -69,7 +71,24 @@ class AudioProcessor:
         self.beg_loop = None #to deal with a potential little lag at the websocket initialization, this is now set in process_audio
         self.sep = " "  # Default separator
         self.last_response_content = ""
-        
+        self.transcript_csv_path = getattr(self.args, "transcript_csv_path", None)
+        self._csv_file = None
+        self._csv_writer = None
+        self._csv_lines_written = 0
+        if self.transcript_csv_path:
+            try:
+                csv_path = Path(self.transcript_csv_path).expanduser()
+                csv_path.parent.mkdir(parents=True, exist_ok=True)
+                self._csv_file = csv_path.open("w", newline="", encoding="utf-8")
+                self._csv_writer = csv.writer(self._csv_file)
+                self._csv_writer.writerow(["time_start", "time_end", "text"])
+                self._csv_file.flush()
+            except Exception as exc:
+                logger.error(f"Unable to initialize transcript CSV at {self.transcript_csv_path}: {exc}")
+                self._csv_file = None
+                self._csv_writer = None
+                self.transcript_csv_path = None
+
         # Models and processing
         self.asr = models.asr
         self.tokenizer = models.tokenizer
@@ -405,6 +424,44 @@ class AudioProcessor:
                         self.translation_queue.task_done()
         logger.info("Translation processor task finished.")
 
+    def _maybe_write_csv(
+        self,
+        lines,
+        buffer_diarization,
+        buffer_transcription,
+        remaining_transcription,
+        remaining_diarization,
+        force_all=False,
+    ):
+        if not self._csv_writer or not self._csv_file:
+            return
+        total_lines = len(lines)
+        if total_lines == 0:
+            return
+        start_idx = min(self._csv_lines_written, total_lines)
+        pending = bool(
+            buffer_transcription
+            or buffer_diarization
+            or (remaining_transcription and remaining_transcription > 0)
+            or (self.args.diarization and remaining_diarization and remaining_diarization > 0)
+        )
+        finalizable_count = total_lines
+        if not force_all and pending:
+            finalizable_count = max(start_idx, total_lines - 1)
+        if finalizable_count <= start_idx:
+            return
+        for line in lines[start_idx:finalizable_count]:
+            text_value = (line.text or "").replace("\n", " ").strip()
+            if line.speaker == -2 and not text_value:
+                continue
+            if not text_value:
+                continue
+            start = "" if line.start is None else f"{line.start:.3f}"
+            end = "" if line.end is None else f"{line.end:.3f}"
+            self._csv_writer.writerow([start, end, text_value])
+        self._csv_file.flush()
+        self._csv_lines_written = finalizable_count
+
     async def results_formatter(self):
         """Format processing results for output."""
         last_sent_trans = None
@@ -468,21 +525,30 @@ class AudioProcessor:
                         end=state.get("end_buffer", 0)        
                     )]
                 
+                trans = state["remaining_time_transcription"]
+                diar = state["remaining_time_diarization"] if self.args.diarization else 0
+
                 response = {
                     "status": response_status,
                     "lines": [line.to_dict() for line in lines],
                     "buffer_transcription": buffer_transcription,
                     "buffer_diarization": buffer_diarization,
-                    "remaining_time_transcription": state["remaining_time_transcription"],
-                    "remaining_time_diarization": state["remaining_time_diarization"] if self.args.diarization else 0
+                    "remaining_time_transcription": trans,
+                    "remaining_time_diarization": diar
                 }
-                
+
+                self._maybe_write_csv(
+                    lines,
+                    buffer_diarization,
+                    buffer_transcription,
+                    trans,
+                    diar,
+                )
+
                 current_response_signature = f"{response_status} | " + \
                                            ' '.join([f"{line.speaker} {line.text}" for line in lines]) + \
                                            f" | {buffer_transcription} | {buffer_diarization}"
-                
-                trans = state["remaining_time_transcription"]
-                diar = state["remaining_time_diarization"]
+
                 should_push = (
                     current_response_signature != self.last_response_content
                     or last_sent_trans is None
@@ -504,6 +570,14 @@ class AudioProcessor:
                         all_processors_done = False
                     
                     if all_processors_done:
+                        self._maybe_write_csv(
+                            lines,
+                            buffer_diarization,
+                            buffer_transcription,
+                            trans,
+                            diar,
+                            force_all=True,
+                        )
                         logger.info("Results formatter: All upstream processors are done and in stopping state. Terminating.")
                         return
                 
@@ -605,6 +679,15 @@ class AudioProcessor:
             logger.info("FFmpeg manager stopped.")
             if self.args.diarization and hasattr(self, 'diarization') and hasattr(self.diarization, 'close'):
                 self.diarization.close()
+            if self._csv_file:
+                try:
+                    self._csv_file.flush()
+                    self._csv_file.close()
+                except Exception as exc:
+                    logger.warning(f"Error while closing transcript CSV: {exc}")
+                finally:
+                    self._csv_file = None
+                    self._csv_writer = None
             logger.info("AudioProcessor cleanup complete.")
 
 

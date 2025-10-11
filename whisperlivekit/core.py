@@ -43,6 +43,7 @@ class TranscriptionEngine:
             "transcription": True,
             "vad": True,
             "pcm_input": False,
+            "transcript_csv_path": 'transcription.csv',
             # whisperstreaming params:
             "buffer_trimming": "segment",
             "confidence_validation": False,

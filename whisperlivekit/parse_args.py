@@ -179,6 +179,12 @@ def parse_args():
         default=False,
         help="If set, raw PCM (s16le) data is expected as input and FFmpeg will be bypassed."
     )
+    parser.add_argument(
+        "--transcript-csv-path",
+        type=str,
+        default="transcription.csv",
+        help="Path to CSV file where finalized transcription segments are written (time_start,time_end,text). Provide an empty string to disable writing.",
+    )
     # SimulStreaming-specific arguments
     simulstreaming_group = parser.add_argument_group('SimulStreaming arguments (only used with --backend simulstreaming)')
 
@@ -288,6 +294,9 @@ def parse_args():
     )
 
     args = parser.parse_args()
+
+    if hasattr(args, "transcript_csv_path") and isinstance(args.transcript_csv_path, str) and not args.transcript_csv_path.strip():
+        args.transcript_csv_path = None
     
     args.transcription = not args.no_transcription
     args.vad = not args.no_vad    

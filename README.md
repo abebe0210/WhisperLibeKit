@@ -132,6 +132,7 @@ async def websocket_endpoint(websocket: WebSocket):
 - `--warmup-file`、もしあれば
 - `--host`, `--port`, `--ssl-certfile`, `--ssl-keyfile`、サーバーをセットアップする場合
 - `--diarization`、使用したい場合。
+- `--transcript-csv-path`、確定した文字起こしをCSV (time_start,time_end,text) 形式で保存するパスです。空文字列で無効化できます。
 
 残りは推奨しません。しかし、以下があなたのオプションです。
 
@@ -149,6 +150,7 @@ async def websocket_endpoint(websocket: WebSocket):
 | `--port` | サーバーポート | `8000` |
 | `--ssl-certfile` | SSL証明書ファイルへのパス（HTTPSサポート用） | `None` |
 | `--ssl-keyfile` | SSL秘密鍵ファイルへのパス（HTTPSサポート用） | `None` |
+| `--transcript-csv-path` | 確定した文字起こしをCSV (time_start,time_end,text) として保存する出力パス。空文字列で無効化。 | `transcription.csv` |
 
 
 | WhisperStreamingバックエンドオプション | 説明 | デフォルト |

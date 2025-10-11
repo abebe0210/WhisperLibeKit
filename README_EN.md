@@ -145,6 +145,7 @@ An important list of parameters can be changed. But what *should* you change?
 - `--task translate`, to translate in english
 - `--host`, `--port`, `--ssl-certfile`, `--ssl-keyfile`, if you set up a server
 - `--diarization`, if you want to use it.
+- `--transcript-csv-path`, path to store finalized transcription rows as CSV (time_start,time_end,text). Provide an empty string to disable.
 - [BETA] `--target-language`, to translate using NLLB. [118 languages available](https://github.com/QuentinFuxa/WhisperLiveKit/blob/main/whisperlivekit/translation/mapping_languages.py). If you want to translate to english, you should rather use `--task translate`, since Whisper can do it directly.
 
 ### Full list of parameters :
@@ -164,6 +165,7 @@ An important list of parameters can be changed. But what *should* you change?
 | `--port` | Server port | `8000` |
 | `--ssl-certfile` | Path to the SSL certificate file (for HTTPS support) | `None` |
 | `--ssl-keyfile` | Path to the SSL private key file (for HTTPS support) | `None` |
+| `--transcript-csv-path` | Output file path for finalized transcription CSV (time_start,time_end,text). Empty string disables writing. | `transcription.csv` |
 | `--pcm-input` | raw PCM (s16le) data is expected as input and FFmpeg will be bypassed. | `False` |
 
 
