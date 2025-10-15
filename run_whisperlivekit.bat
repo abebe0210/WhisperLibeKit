@@ -1,1 +1,1 @@
-whisperlivekit-server --model large-v3 --language ja
+whisperlivekit-server --model large-v3-turbo --language ja
