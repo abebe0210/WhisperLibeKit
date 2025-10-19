@@ -6,6 +6,7 @@ import warnings
 from typing import List, Optional, Union
 
 import torch
+from huggingface_hub import hf_hub_download
 from tqdm import tqdm
 
 from .audio import load_audio, log_mel_spectrogram, pad_or_trim
@@ -29,6 +30,16 @@ _MODELS = {
     "large": "https://openaipublic.azureedge.net/main/whisper/models/e5b1a55b89c1367dacf97e3e19bfd829a01529dbfdeefa8caeb59b3f1b81dadb/large-v3.pt",
     "large-v3-turbo": "https://openaipublic.azureedge.net/main/whisper/models/aff26ae408abcba5fbf8813c21e62b0941638c5f6eebfb145be0c9839262a19a/large-v3-turbo.pt",
     "turbo": "https://openaipublic.azureedge.net/main/whisper/models/aff26ae408abcba5fbf8813c21e62b0941638c5f6eebfb145be0c9839262a19a/large-v3-turbo.pt",
+}
+
+_HF_MODELS = {
+    "kotoba-whisper-v2.2": {
+        "repo_id": "kotoba-tech/kotoba-whisper-v2.2",
+        "filename": "kotoba-whisper-v2.2.pt",
+        "variants": {
+            "flash_attention_2": "kotoba-whisper-v2.2-flash_attention_2.pt",
+        },
+    },
 }
 
 # base85-encoded (n_layers, n_heads) boolean arrays indicating the cross-attention heads that are
@@ -97,7 +108,7 @@ def _download(url: str, root: str, in_memory: bool) -> Union[bytes, str]:
 
 def available_models() -> List[str]:
     """Returns the names of available models"""
-    return list(_MODELS.keys())
+    return list(_MODELS.keys()) + list(_HF_MODELS.keys())
 
 
 def load_model(
@@ -105,7 +116,8 @@ def load_model(
     device: Optional[Union[str, torch.device]] = None,
     download_root: str = None,
     in_memory: bool = False,
-    decoder_only=False
+    decoder_only=False,
+    flash_attention_2: bool = False,
 ) -> Whisper:
     """
     Load a Whisper ASR model
@@ -137,6 +149,29 @@ def load_model(
     if name in _MODELS:
         checkpoint_file = _download(_MODELS[name], download_root, in_memory)
         alignment_heads = _ALIGNMENT_HEADS[name]
+    elif name in _HF_MODELS:
+        model_info = _HF_MODELS[name]
+        filename = model_info["filename"]
+        if flash_attention_2:
+            variant_filename = model_info.get("variants", {}).get("flash_attention_2")
+            if variant_filename is None:
+                raise ValueError(
+                    f"Model '{name}' does not provide a flash_attention_2 variant."
+                )
+            filename = variant_filename
+
+        hf_kwargs = {"repo_id": model_info["repo_id"], "filename": filename}
+        if download_root is not None:
+            os.makedirs(download_root, exist_ok=True)
+            hf_kwargs["cache_dir"] = download_root
+
+        checkpoint_path = hf_hub_download(**hf_kwargs)
+        if in_memory:
+            with open(checkpoint_path, "rb") as fp:
+                checkpoint_file = fp.read()
+        else:
+            checkpoint_file = checkpoint_path
+        alignment_heads = None
     elif os.path.isfile(name):
         checkpoint_file = open(name, "rb").read() if in_memory else name
         alignment_heads = None

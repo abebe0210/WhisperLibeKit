@@ -172,6 +172,7 @@ async def websocket_endpoint(websocket: WebSocket):
 | `--static-init-prompt` | スクロールしない静的プロンプト | `None` |
 | `--max-context-tokens` | 最大コンテキストトークン数 | `None` |
 | `--model-path` | .ptモデルファイルへの直接パス。見つからない場合はダウンロード | `./base.pt` |
+| `--flash-attention-2` | `kotoba-whisper-v2.2`モデル用のFlashAttention-2最適化チェックポイントを使用（SimulStreaming専用） | `False` |
 | `--preloaded-model-count` | オプション。メモリにプリロードするモデルの数（予想される同時ユーザー数まで設定） | `1` |
 
 | ダイアライゼーションオプション | 説明 | デフォルト |

@@ -11,6 +11,7 @@ from .whisper import load_model, tokenizer
 from .whisper.audio import TOKENS_PER_SECOND
 import os
 import gc
+from huggingface_hub import hf_hub_download
 logger = logging.getLogger(__name__)
 
 import torch
@@ -230,7 +231,7 @@ class SimulStreamingASR():
         self.logfile = logfile
         self.transcribe_kargs = {}
         self.original_language = lan
-        
+
         self.model_path = kwargs.get('model_path', './large-v3.pt')
         self.frame_threshold = kwargs.get('frame_threshold', 25)
         self.audio_max_len = kwargs.get('audio_max_len', 20.0)
@@ -248,9 +249,13 @@ class SimulStreamingASR():
         self.preload_model_count = kwargs.get('preload_model_count', 1)
         self.disable_fast_encoder = kwargs.get('disable_fast_encoder', False)
         self.fast_encoder = False
+        self.flash_attention_2 = kwargs.get('flash_attention_2', False)
+        self.cache_dir = cache_dir
         if model_dir is not None:
             self.model_path = model_dir
         elif modelsize is not None:
+            if self.flash_attention_2 and modelsize != 'kotoba-whisper-v2.2':
+                raise ValueError("--flash-attention-2 is only supported with the kotoba-whisper-v2.2 model.")
             model_mapping = {
                 'tiny': './tiny.pt',
                 'base': './base.pt',
@@ -263,10 +268,36 @@ class SimulStreamingASR():
                 'tiny.en': './tiny.en.pt',
                 'large-v2': './large-v2.pt',
                 'large-v3': './large-v3.pt',
-                'large': './large-v3.pt'
+                'large': './large-v3.pt',
+                'kotoba-whisper-v2.2': None,
             }
-            self.model_path = model_mapping.get(modelsize, f'./{modelsize}.pt')
-        
+            hf_model_mapping = {
+                'kotoba-whisper-v2.2': {
+                    'repo_id': 'kotoba-tech/kotoba-whisper-v2.2',
+                    'filename': 'kotoba-whisper-v2.2.pt',
+                    'variants': {
+                        'flash_attention_2': 'kotoba-whisper-v2.2-flash_attention_2.pt',
+                    },
+                }
+            }
+            if modelsize in hf_model_mapping:
+                download_root = self.cache_dir or os.path.join(os.path.expanduser('~'), '.cache', 'whisper')
+                os.makedirs(download_root, exist_ok=True)
+                hf_info = hf_model_mapping[modelsize]
+                filename = hf_info['filename']
+                if self.flash_attention_2:
+                    variant_filename = hf_info.get('variants', {}).get('flash_attention_2')
+                    if variant_filename is None:
+                        raise ValueError("FlashAttention-2 weights are not available for this model.")
+                    filename = variant_filename
+                self.model_path = hf_hub_download(
+                    repo_id=hf_info['repo_id'],
+                    filename=filename,
+                    cache_dir=download_root,
+                )
+            else:
+                self.model_path = model_mapping.get(modelsize, f'./{modelsize}.pt')
+
         self.cfg = AlignAttConfig(
                 model_path=self.model_path,
                 segment_length=self.segment_length,
@@ -289,8 +320,10 @@ class SimulStreamingASR():
             self.tokenizer = self.set_translate_task()
         else:
             self.tokenizer = None
-        
+
         self.model_name = os.path.basename(self.cfg.model_path).replace(".pt", "")
+        if modelsize is not None:
+            self.model_name = modelsize
         self.model_path = os.path.dirname(os.path.abspath(self.cfg.model_path))
     
         self.mlx_encoder, self.fw_encoder = None, None
@@ -313,7 +346,12 @@ class SimulStreamingASR():
 
 
     def load_model(self):
-        whisper_model = load_model(name=self.model_name, download_root=self.model_path, decoder_only=self.fast_encoder)
+        whisper_model = load_model(
+            name=self.model_name,
+            download_root=self.model_path,
+            decoder_only=self.fast_encoder,
+            flash_attention_2=self.flash_attention_2,
+        )
         warmup_audio = load_file(self.warmup_file)
         if warmup_audio is not None:
             warmup_audio = torch.from_numpy(warmup_audio).float()

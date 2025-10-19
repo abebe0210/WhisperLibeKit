@@ -65,6 +65,8 @@ def create_tokenizer(lan):
 
 def backend_factory(args):
     backend = args.backend
+    if getattr(args, "flash_attention_2", False) and backend != "simulstreaming":
+        raise ValueError("--flash-attention-2 is only supported with the SimulStreaming backend.")
     if backend == "openai-api":
         logger.debug("Using OpenAI API.")
         asr = OpenaiApiASR(lan=args.lan)        
