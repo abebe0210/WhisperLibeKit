@@ -37,6 +37,7 @@ dependencies = [
     "torch>=2.0.0",
     "tqdm",
     "tiktoken",
+    "huggingface_hub",
     'triton>=2.0.0; platform_machine == "x86_64" and (sys_platform == "linux" or sys_platform == "linux2")'
 ]
 

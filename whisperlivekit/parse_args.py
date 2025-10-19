@@ -293,6 +293,14 @@ def parse_args():
         help="Optional. Number of models to preload in memory to speed up loading (set up to the expected number of concurrent instances).",
     )
 
+    simulstreaming_group.add_argument(
+        "--flash-attention-2",
+        action="store_true",
+        default=False,
+        dest="flash_attention_2",
+        help="Use the FlashAttention-2 optimized kotoba-whisper-v2.2 checkpoint when available.",
+    )
+
     args = parser.parse_args()
 
     if hasattr(args, "transcript_csv_path") and isinstance(args.transcript_csv_path, str) and not args.transcript_csv_path.strip():

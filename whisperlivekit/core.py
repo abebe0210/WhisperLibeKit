@@ -65,7 +65,8 @@ class TranscriptionEngine:
             # diarization params:
             "disable_punctuation_split" : False,
             "segmentation_model": "pyannote/segmentation-3.0",
-            "embedding_model": "pyannote/embedding",         
+            "embedding_model": "pyannote/embedding",
+            "flash_attention_2": False,
         }
 
         config_dict = {**defaults, **kwargs}
@@ -100,9 +101,10 @@ class TranscriptionEngine:
                 from whisperlivekit.simul_whisper import SimulStreamingASR
                 self.tokenizer = None
                 simulstreaming_kwargs = {}
-                for attr in ['frame_threshold', 'beams', 'decoder_type', 'audio_max_len', 'audio_min_len', 
-                            'cif_ckpt_path', 'never_fire', 'init_prompt', 'static_init_prompt', 
-                            'max_context_tokens', 'model_path', 'warmup_file', 'preload_model_count', 'disable_fast_encoder']:
+                for attr in ['frame_threshold', 'beams', 'decoder_type', 'audio_max_len', 'audio_min_len',
+                            'cif_ckpt_path', 'never_fire', 'init_prompt', 'static_init_prompt',
+                            'max_context_tokens', 'model_path', 'warmup_file', 'preload_model_count', 'disable_fast_encoder',
+                            'flash_attention_2']:
                     if hasattr(self.args, attr):
                         simulstreaming_kwargs[attr] = getattr(self.args, attr)
         

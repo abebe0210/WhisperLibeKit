@@ -168,6 +168,11 @@ class MLXWhisper(ASRBase):
         return transcribe
 
     def translate_model_name(self, model_name):
+        if model_name == "kotoba-whisper-v2.2":
+            raise ValueError(
+                "Model 'kotoba-whisper-v2.2' is not supported by the MLX Whisper backend. "
+                "Use a supported MLX Whisper checkpoint or select a different backend (e.g. --backend whisper)."
+            )
         model_mapping = {
             "tiny.en": "mlx-community/whisper-tiny.en-mlx",
             "tiny": "mlx-community/whisper-tiny-mlx",
