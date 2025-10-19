@@ -89,7 +89,7 @@ def parse_args():
         "--model",
         type=str,
         default="small",
-        help="Name size of the Whisper model to use (default: tiny). Suggested values: tiny.en,tiny,base.en,base,small.en,small,medium.en,medium,large-v1,large-v2,large-v3,large,large-v3-turbo. The model is automatically downloaded from the model hub if not present in model cache dir.",
+        help="Name size of the Whisper model to use (default: tiny). Suggested values: tiny.en,tiny,base.en,base,small.en,small,medium.en,medium,large-v1,large-v2,large-v3,large,large-v3-turbo,kotoba-whisper-v2.2 (tuned for Japanese). The model is automatically downloaded from the model hub if not present in model cache dir.",
     )
     
     parser.add_argument(

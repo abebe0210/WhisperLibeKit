@@ -127,6 +127,7 @@ async def websocket_endpoint(websocket: WebSocket):
 
 重要なパラメータのリストを変更できます。しかし、何を*変更すべき*でしょうか？
 - `--model` サイズ。リストと推奨事項は[こちら](https://github.com/QuentinFuxa/WhisperLiveKit/blob/main/available_models.md)
+  - 新しく追加された [`kotoba-whisper-v2.2`](https://github.com/QuentinFuxa/WhisperLiveKit/blob/main/available_models.md) は日本語向けに最適化されており、`faster-whisper` または `whisper_timestamped` バックエンドでのみ利用できます。
 - `--language`。リストは[こちら](https://github.com/QuentinFuxa/WhisperLiveKit/blob/main/whisperlivekit/simul_whisper/whisper/tokenizer.py)。`auto`を使用すると、モデルは自動的に言語を検出しようとしますが、英語に偏る傾向があります。
 - `--backend`？ `simulstreaming`が正しく動作しない場合や、デュアルライセンス要件を避けたい場合は`--backend faster-whisper`に切り替えることができます。
 - `--warmup-file`、もしあれば

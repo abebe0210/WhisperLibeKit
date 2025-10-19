@@ -12,6 +12,7 @@
 - large-v2
 - large-v3
 - large-v3-turbo
+- kotoba-whisper-v2.2
 
 ## How to choose?
 
@@ -32,6 +33,10 @@
 - **No translation needed**: Use `large-v3-turbo`
   - Same transcription quality as `large-v2` but significantly faster
   - **Important**: Does not translate correctly, only transcribes
+- **Japanese-first transcription**: Try [`kotoba-whisper-v2.2`](https://huggingface.co/kotoba-tech/kotoba-whisper-v2.2)
+  - Fine-tuned for conversational and broadcast Japanese with improved punctuation
+  - Best results on GPU backends that support Whisper checkpoints (e.g., faster-whisper, whisper_timestamped)
+  - Hardware requirements similar to `large` models (plan for ≥10GB VRAM or high-end CPU inference)
 
 ### Model Comparison Table
 
